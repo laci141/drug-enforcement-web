@@ -17,35 +17,47 @@
       content: '';
       position: fixed;
       top: 0; left: 0; width: 100%; height: 100%;
-      background: radial-gradient(ellipse at 20% 50%, rgba(220, 38, 38, 0.15) 0%, transparent 50%),
-                  radial-gradient(ellipse at 80% 80%, rgba(234, 88, 12, 0.1) 0%, transparent 50%),
-                  radial-gradient(ellipse at 50% 0%, rgba(120, 30, 30, 0.1) 0%, transparent 60%);
+      background:
+        radial-gradient(circle at 15% 30%, rgba(220, 38, 38, 0.45) 0%, transparent 40%),
+        radial-gradient(circle at 85% 20%, rgba(234, 88, 12, 0.4) 0%, transparent 45%),
+        radial-gradient(circle at 70% 80%, rgba(147, 51, 234, 0.3) 0%, transparent 45%),
+        radial-gradient(circle at 25% 85%, rgba(217, 119, 6, 0.35) 0%, transparent 40%),
+        radial-gradient(circle at 50% 50%, rgba(190, 24, 93, 0.2) 0%, transparent 55%);
       pointer-events: none;
       z-index: -1;
     }
     .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
     .hero {
       text-align: center;
-      padding: 50px 20px 40px;
-      background: linear-gradient(135deg, rgba(30, 20, 20, 0.7), rgba(40, 15, 15, 0.7));
+      padding: 40px 20px 32px;
+      background: rgba(255, 255, 255, 0.06);
       border-radius: 20px;
-      backdrop-filter: blur(15px);
-      -webkit-backdrop-filter: blur(15px);
-      border: 1px solid rgba(220, 38, 38, 0.2);
+      backdrop-filter: blur(22px) saturate(160%);
+      -webkit-backdrop-filter: blur(22px) saturate(160%);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 8px 32px rgba(0, 0, 0, 0.35);
       margin-bottom: 40px;
     }
     .hero h1 {
-      font-size: 2.5rem;
+      font-size: 2.25rem;
       background: linear-gradient(135deg, #dc2626, #ea580c);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
       font-weight: 700;
     }
-    .hero p { font-size: 1rem; color: #b0b0b0; margin-bottom: 26px; line-height: 1.6; }
+    .hero p {
+      font-size: 0.85rem;
+      color: #b0b0b0;
+      margin-bottom: 22px;
+      line-height: 1.5;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
     .chip-group-label {
-      font-size: 0.8rem;
+      font-size: 0.72rem;
       color: #909090;
       text-transform: uppercase;
       letter-spacing: 1px;
@@ -54,27 +66,30 @@
     .hero-chips {
       display: flex;
       justify-content: center;
-      gap: 8px;
+      gap: 7px;
       flex-wrap: wrap;
-      margin-bottom: 18px;
+      margin-bottom: 16px;
+      max-width: 1050px;
+      margin-left: auto;
+      margin-right: auto;
     }
     .chip {
-      padding: 7px 14px;
+      padding: 6px 12px;
       background: rgba(220, 38, 38, 0.15);
       border: 1px solid rgba(220, 38, 38, 0.4);
       border-radius: 20px;
       color: #fca5a5;
       cursor: pointer;
       transition: all 0.3s ease;
-      font-size: 0.85rem;
+      font-size: 0.77rem;
     }
-    .chip:hover { background: rgba(220, 38, 38, 0.25); border-color: rgba(220, 38, 38, 0.6); }
+    .chip:hover { background: rgba(220, 38, 38, 0.3); border-color: rgba(220, 38, 38, 0.7); transform: translateY(-1px); }
     .chip.firm-chip {
       background: rgba(234, 88, 12, 0.15);
       border-color: rgba(234, 88, 12, 0.4);
       color: #fdba74;
     }
-    .chip.firm-chip:hover { background: rgba(234, 88, 12, 0.25); border-color: rgba(234, 88, 12, 0.6); }
+    .chip.firm-chip:hover { background: rgba(234, 88, 12, 0.3); border-color: rgba(234, 88, 12, 0.7); }
     .grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -82,21 +97,21 @@
       margin-bottom: 40px;
     }
     .card {
-      background: rgba(255, 255, 255, 0.08);
-      backdrop-filter: blur(25px);
-      -webkit-backdrop-filter: blur(25px);
-      border: 1px solid rgba(220, 38, 38, 0.35);
+      background: rgba(255, 255, 255, 0.07);
+      backdrop-filter: blur(25px) saturate(160%);
+      -webkit-backdrop-filter: blur(25px) saturate(160%);
+      border: 1px solid rgba(255, 255, 255, 0.18);
       border-radius: 16px;
       padding: 24px;
       transition: all 0.3s ease;
       cursor: pointer;
-      box-shadow: inset 0 0 30px rgba(220, 38, 38, 0.1), 0 8px 32px rgba(0, 0, 0, 0.3);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), inset 0 0 30px rgba(220, 38, 38, 0.08), 0 8px 32px rgba(0, 0, 0, 0.3);
     }
     .card:hover {
-      background: rgba(255, 255, 255, 0.1);
-      border-color: rgba(220, 38, 38, 0.5);
+      background: rgba(255, 255, 255, 0.11);
+      border-color: rgba(255, 255, 255, 0.3);
       transform: translateY(-4px);
-      box-shadow: inset 0 0 40px rgba(220, 38, 38, 0.15), 0 12px 48px rgba(0, 0, 0, 0.4);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), inset 0 0 40px rgba(220, 38, 38, 0.12), 0 12px 48px rgba(0, 0, 0, 0.4);
     }
     .card.red-accent { border-top: 3px solid #dc2626; }
     .card.orange-accent { border-top: 3px solid #ea580c; }
@@ -121,7 +136,7 @@
       display: none;
       position: fixed;
       top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0, 0, 0, 0.6);
+      background: rgba(0, 0, 0, 0.55);
       z-index: 1000;
       align-items: center;
       justify-content: center;
@@ -129,10 +144,11 @@
     }
     .modal.open { display: flex; }
     .modal-content {
-      background: rgba(30, 25, 35, 0.95);
-      backdrop-filter: blur(28px);
-      -webkit-backdrop-filter: blur(28px);
-      border: 2px solid rgba(220, 38, 38, 0.4);
+      background: rgba(35, 28, 40, 0.82);
+      backdrop-filter: blur(28px) saturate(160%);
+      -webkit-backdrop-filter: blur(28px) saturate(160%);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-top: 1px solid rgba(255, 255, 255, 0.3);
       border-radius: 16px;
       padding: 30px;
       max-width: 640px;
@@ -140,7 +156,7 @@
       max-height: 85vh;
       overflow-y: auto;
       position: relative;
-      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 25px 50px rgba(0, 0, 0, 0.5);
       transition: max-width 0.3s ease;
     }
     .modal-content.wide { max-width: 1080px; }
@@ -281,10 +297,11 @@
     .footer-main { font-size: 0.85rem; color: #707070; margin-bottom: 16px; }
     .footer-disclaimer { font-size: 0.8rem; color: #fca5a5; line-height: 1.6; max-width: 800px; margin: 0 auto; }
     @media (max-width: 768px) {
-      .card { backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); }
-      .modal-content { backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); padding: 20px; }
-      .hero h1 { font-size: 1.8rem; }
-      .hero { padding: 40px 16px 30px; }
+      .card { backdrop-filter: blur(15px) saturate(160%); -webkit-backdrop-filter: blur(15px) saturate(160%); }
+      .modal-content { backdrop-filter: blur(18px) saturate(160%); -webkit-backdrop-filter: blur(18px) saturate(160%); padding: 20px; }
+      .hero h1 { font-size: 1.6rem; }
+      .hero { padding: 30px 14px 24px; }
+      .hero p { white-space: normal; }
       .result-table { font-size: 0.8rem; }
       .result-table td, .result-table th { padding: 8px; }
       .result-table td.clip { max-width: 200px; }
@@ -295,7 +312,7 @@
   <div class="container">
     <div class="hero">
       <h1>⚠️ FDA Drug Recall Tracker</h1>
-      <p>Check active FDA recalls by drug name, manufacturer, or date.<br>Powered by openFDA. Not medical advice.</p>
+      <p>Check active FDA recalls by drug name, manufacturer, or date · Powered by openFDA · Not medical advice.</p>
       <div class="chip-group-label">💊 Popular drugs</div>
       <div class="hero-chips">
         <div class="chip" onclick="prefillCheck('Aspirin')">Aspirin</div>
@@ -308,6 +325,16 @@
         <div class="chip" onclick="prefillCheck('Omeprazole')">Omeprazole</div>
         <div class="chip" onclick="prefillCheck('Insulin')">Insulin</div>
         <div class="chip" onclick="prefillCheck('Duloxetine')">Duloxetine</div>
+        <div class="chip" onclick="prefillCheck('Lisinopril')">Lisinopril</div>
+        <div class="chip" onclick="prefillCheck('Amlodipine')">Amlodipine</div>
+        <div class="chip" onclick="prefillCheck('Gabapentin')">Gabapentin</div>
+        <div class="chip" onclick="prefillCheck('Sertraline')">Sertraline</div>
+        <div class="chip" onclick="prefillCheck('Levothyroxine')">Levothyroxine</div>
+        <div class="chip" onclick="prefillCheck('Valsartan')">Valsartan</div>
+        <div class="chip" onclick="prefillCheck('Ranitidine')">Ranitidine</div>
+        <div class="chip" onclick="prefillCheck('Prednisone')">Prednisone</div>
+        <div class="chip" onclick="prefillCheck('Warfarin')">Warfarin</div>
+        <div class="chip" onclick="prefillCheck('Naproxen')">Naproxen</div>
       </div>
       <div class="chip-group-label">🏭 Major manufacturers</div>
       <div class="hero-chips" style="margin-bottom: 4px;">
@@ -321,6 +348,16 @@
         <div class="chip firm-chip" onclick="prefillFirm('Amneal')">Amneal</div>
         <div class="chip firm-chip" onclick="prefillFirm('Glenmark')">Glenmark</div>
         <div class="chip firm-chip" onclick="prefillFirm('Zydus')">Zydus</div>
+        <div class="chip firm-chip" onclick="prefillFirm('Mylan')">Mylan</div>
+        <div class="chip firm-chip" onclick="prefillFirm('Lupin')">Lupin</div>
+        <div class="chip firm-chip" onclick="prefillFirm('Cipla')">Cipla</div>
+        <div class="chip firm-chip" onclick="prefillFirm('Apotex')">Apotex</div>
+        <div class="chip firm-chip" onclick="prefillFirm('Fresenius Kabi')">Fresenius Kabi</div>
+        <div class="chip firm-chip" onclick="prefillFirm('Baxter')">Baxter</div>
+        <div class="chip firm-chip" onclick="prefillFirm('Torrent')">Torrent</div>
+        <div class="chip firm-chip" onclick="prefillFirm('Novartis')">Novartis</div>
+        <div class="chip firm-chip" onclick="prefillFirm('Merck')">Merck</div>
+        <div class="chip firm-chip" onclick="prefillFirm('Johnson & Johnson')">Johnson & Johnson</div>
       </div>
     </div>
     <div class="grid">
