@@ -250,14 +250,24 @@
       white-space: nowrap;
       cursor: help;
     }
-    .result-table code {
+    .recall-link {
+      color: #fca5a5;
+      text-decoration: none;
       background: rgba(220, 38, 38, 0.15);
       padding: 2px 6px;
       border-radius: 4px;
       font-family: 'Monaco', 'Courier New', monospace;
       font-size: 0.8rem;
       white-space: nowrap;
+      border-bottom: 1px dashed rgba(252, 165, 165, 0.6);
+      transition: all 0.2s ease;
     }
+    .recall-link:hover {
+      background: rgba(220, 38, 38, 0.35);
+      color: #fff;
+      border-bottom-style: solid;
+    }
+    .recall-link::after { content: ' ↗'; font-size: 0.7rem; }
     .badge {
       display: inline-block;
       padding: 4px 8px;
@@ -269,6 +279,20 @@
     .badge-red { background: #7c1d12; color: #fca5a5; }
     .badge-yellow { background: #713f12; color: #fcd34d; }
     .badge-gray { background: #374151; color: #d1d5db; }
+    .link-btns { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+    .link-btn {
+      display: inline-block;
+      padding: 8px 14px;
+      background: rgba(220, 38, 38, 0.2);
+      border: 1px solid rgba(220, 38, 38, 0.5);
+      border-radius: 8px;
+      color: #fca5a5;
+      text-decoration: none;
+      font-size: 0.85rem;
+      font-weight: 600;
+      transition: all 0.2s ease;
+    }
+    .link-btn:hover { background: rgba(220, 38, 38, 0.35); color: #fff; }
     .empty-state {
       text-align: center;
       padding: 30px 20px;
@@ -516,6 +540,18 @@
       if (c === 'III') return '<span class="badge badge-gray">Class III</span>';
       return `<span class="badge badge-gray">${esc(cls || 'N/A')}</span>`;
     }
+    function recallSearchUrl(recallNumber, productDesc) {
+      const q = encodeURIComponent('"' + (recallNumber || '') + '" FDA recall ' + (productDesc || '').split(',')[0].substring(0, 40));
+      return 'https://www.google.com/search?q=' + q;
+    }
+    function fdaSearchUrl(term) {
+      return 'https://www.fda.gov/safety/recalls-market-withdrawals-safety-alerts?search_api_fulltext=' + encodeURIComponent(term || '');
+    }
+    function recallCell(r) {
+      const num = r.recall_number || 'N/A';
+      if (num === 'N/A') return `<td class="nowrap"><code style="background:rgba(220,38,38,0.15);padding:2px 6px;border-radius:4px;">N/A</code></td>`;
+      return `<td class="nowrap"><a class="recall-link" href="${recallSearchUrl(num, r.product_description)}" target="_blank" rel="noopener" title="Open full recall details in a new tab">${esc(num)}</a></td>`;
+    }
     function clipCell(text, highlightTerm) {
       const full = text || 'N/A';
       let inner = esc(full);
@@ -530,7 +566,7 @@
         cols.map(c => `<th>${c}</th>`).join('') + '</tr>';
     }
     function rowCommon(r, highlightTerm) {
-      return `<td class="nowrap"><code>${esc(r.recall_number || 'N/A')}</code></td>` +
+      return recallCell(r) +
              `<td class="nowrap">${fmtDate(r.recall_initiation_date)}</td>` +
              `<td class="nowrap">${getClassBadge(r.classification)}</td>` +
              clipCell(r.product_description, highlightTerm) +
@@ -560,6 +596,7 @@
           html += '<tr>' + rowCommon(r, drug) + '</tr>';
         });
         html += '</table></div>';
+        html += '<p style="font-size:0.75rem;color:#909090;margin-top:8px;">💡 Click a recall number to open full details in a new tab. Hover over Product/Reason for full text.</p>';
         resultDiv.innerHTML = html;
       } catch (err) {
         resultDiv.innerHTML = `<div class="error-box">Error: ${esc(err.message)}</div>`;
@@ -589,6 +626,7 @@
           html += '<tr>' + rowCommon(r, null) + '</tr>';
         });
         html += '</table></div>';
+        html += '<p style="font-size:0.75rem;color:#909090;margin-top:8px;">💡 Click a recall number to open full details in a new tab. Hover over Product/Reason for full text.</p>';
         resultDiv.innerHTML = html;
       } catch (err) {
         resultDiv.innerHTML = `<div class="error-box">Error: ${esc(err.message)}</div>`;
@@ -617,6 +655,7 @@
           html += '<tr>' + rowCommon(r, null) + '</tr>';
         });
         html += '</table></div>';
+        html += '<p style="font-size:0.75rem;color:#909090;margin-top:8px;">💡 Click a recall number to open full details in a new tab. Hover over Product/Reason for full text.</p>';
         resultDiv.innerHTML = html;
       } catch (err) {
         resultDiv.innerHTML = `<div class="error-box">Error: ${esc(err.message)}</div>`;
@@ -653,6 +692,10 @@
         html += `<p><strong>Reason:</strong> ${esc(rec.reason_for_recall || 'N/A')}</p>`;
         html += lots;
         html += `<p><strong>Date Initiated:</strong> ${fmtDate(rec.recall_initiation_date)}</p>`;
+        html += '</div>';
+        html += '<div class="link-btns">';
+        html += `<a class="link-btn" href="${fdaSearchUrl(rec.product_description ? rec.product_description.split(',')[0] : rec.recall_number)}" target="_blank" rel="noopener">🔍 Search on FDA.gov</a>`;
+        html += `<a class="link-btn" href="${recallSearchUrl(rec.recall_number, rec.product_description)}" target="_blank" rel="noopener">🌐 Google this recall</a>`;
         html += '</div>';
         resultDiv.innerHTML = html;
       } catch (err) {
