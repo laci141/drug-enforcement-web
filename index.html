@@ -3,8 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FDA Drug Recall Tracker</title>
+  <title>Recallis — Drug Recall & Enforcement Search</title>
+  <meta name="description" content="Recallis — search FDA drug recalls and enforcement reports by drug name, manufacturer or classification. Open data from the openFDA public API, no key required.">
+  <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
   <style>
+    :root { --c: #ea580c; }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html { scroll-behavior: smooth; }
     body {
@@ -277,6 +280,7 @@
       white-space: nowrap;
     }
     .badge-red { background: #7c1d12; color: #fca5a5; }
+    .badge-orange { background: #7c2d12; color: #fdba74; }
     .badge-yellow { background: #713f12; color: #fcd34d; }
     .badge-gray { background: #374151; color: #d1d5db; }
     .link-btns { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
@@ -318,11 +322,45 @@
       -webkit-backdrop-filter: blur(10px);
       border-radius: 12px;
     }
-    .footer-main { font-size: 0.85rem; color: #707070; margin-bottom: 16px; }
-    .footer-disclaimer { font-size: 0.8rem; color: #fca5a5; line-height: 1.6; max-width: 800px; margin: 0 auto; }
+    .footer-main { font-size: 0.85rem; color: #707070; }
+    .disclaimer-panel {
+      max-width: 1160px;
+      margin: 50px auto 0;
+      padding: 20px 24px;
+      background: rgba(220, 38, 38, 0.08);
+      border: 1px solid rgba(220, 38, 38, 0.35);
+      border-radius: 16px;
+      backdrop-filter: blur(15px) saturate(160%);
+      -webkit-backdrop-filter: blur(15px) saturate(160%);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 8px 32px rgba(0, 0, 0, 0.3);
+      font-size: 0.84rem;
+      color: #e8b4b4;
+      line-height: 1.7;
+    }
+    .disclaimer-panel strong { display: block; color: #fca5a5; margin-bottom: 6px; font-size: 0.9rem; }
+    .meta-row { display: flex; justify-content: space-between; align-items: center; margin: 16px 0 10px; gap: 12px; flex-wrap: wrap; }
+    .meta { font-size: 0.82rem; color: #99a; }
+    .dl { background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.18); color: #cdd6ea;
+      padding: 4px 14px; border-radius: 999px; font-size: .75rem; font-weight: 600; cursor: pointer;
+      transition: .2s; white-space: nowrap; flex-shrink: 0; }
+    .dl:hover { background: rgba(255,255,255,.15); border-color: var(--c); color: #fff; }
+    .dl-group { display: flex; gap: 8px; flex-shrink: 0; align-items: center; flex-wrap: wrap; }
+    .qfilter { background: rgba(0,0,0,.35); border: 1px solid rgba(255,255,255,.16); border-radius: 999px;
+      padding: 4px 14px; color: #e8eef7; font-size: .78rem; width: 190px; }
+    .qfilter:focus { outline: none; border-color: var(--c); }
+    .qcount { color: #7dd3fc; font-size: .78rem; font-weight: 600; margin-left: 6px; }
+    .qclass { background: rgba(220, 38, 38, 0.15); border: 1px solid rgba(220, 38, 38, 0.45); color: #fca5a5;
+      padding: 4px 12px; border-radius: 999px; font-size: .75rem; font-weight: 600; cursor: pointer;
+      transition: .2s; white-space: nowrap; flex-shrink: 0; }
+    .qclass:hover { background: rgba(220, 38, 38, 0.3); }
+    .qclass.on { background: #7c1d12; color: #fff; border-color: #dc2626; }
+    .result-table th { cursor: pointer; user-select: none; }
+    .sort-ind { opacity: 0.55; font-size: 0.72rem; }
     @media (max-width: 768px) {
       .card { backdrop-filter: blur(15px) saturate(160%); -webkit-backdrop-filter: blur(15px) saturate(160%); }
       .modal-content { backdrop-filter: blur(18px) saturate(160%); -webkit-backdrop-filter: blur(18px) saturate(160%); padding: 20px; }
+      .disclaimer-panel { backdrop-filter: blur(11px) saturate(160%); -webkit-backdrop-filter: blur(11px) saturate(160%); padding: 14px 16px; margin-left: 12px; margin-right: 12px; }
+      .qfilter { width: 140px; }
       .hero h1 { font-size: 1.6rem; }
       .hero { padding: 30px 14px 24px; }
       .hero p { white-space: normal; }
@@ -335,8 +373,8 @@
 <body>
   <div class="container">
     <div class="hero">
-      <h1>⚠️ FDA Drug Recall Tracker</h1>
-      <p>Check active FDA recalls by drug name, manufacturer, or date · Powered by openFDA · Not medical advice.</p>
+      <h1>Pubvera · Recallis</h1>
+      <p>Search FDA drug recalls and enforcement reports by drug, firm or classification — open data, keyless.</p>
       <div class="chip-group-label">💊 Popular drugs</div>
       <div class="hero-chips">
         <div class="chip" onclick="prefillCheck('Aspirin')">Aspirin</div>
@@ -485,12 +523,13 @@
       <div id="referenceResult"></div>
     </div>
   </div>
+  <div class="disclaimer-panel">
+    <strong>⚠️ Important notice</strong>
+    Recallis is an independent research tool. It is not affiliated with, endorsed by, or sponsored by the U.S. Food and Drug Administration or any manufacturer. Data is sourced from the openFDA public API and may be incomplete, delayed, or superseded. This is not medical advice — never start, stop or change a medication based on this tool. Always verify against the official FDA record and consult a healthcare professional.
+  </div>
   <div class="footer">
     <div class="footer-main">
-      Data: openFDA · U.S. Food and Drug Administration. Not medical or legal advice.
-    </div>
-    <div class="footer-disclaimer">
-      ⚠️ Do not rely on openFDA for medical decisions. This is enforcement data only, not medical advice.
+      Recallis · Part of the Pubvera research suite · Data: openFDA public API · Not medical or legal advice.
     </div>
   </div>
   <script>
@@ -521,23 +560,20 @@
     function updateLabel(labelId, value) {
       document.getElementById(labelId).textContent = value;
     }
+    // openFDA returns dates as YYYYMMDD; render ISO YYYY-MM-DD so date columns sort correctly.
+    function isoDate(s) {
+      const m = /^(\d{4})(\d{2})(\d{2})$/.exec(s || '');
+      if (m) return `${m[1]}-${m[2]}-${m[3]}`;
+      return s ? String(s).slice(0, 10) : '';
+    }
     function fmtDate(s) {
-      if (!s) return 'N/A';
-      const m = /^(\d{4})(\d{2})(\d{2})$/.exec(s);
-      if (m) s = `${m[1]}-${m[2]}-${m[3]}`;
-      try {
-        const d = new Date(s);
-        if (isNaN(d)) return s;
-        return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-      } catch {
-        return s;
-      }
+      return isoDate(s) || 'N/A';
     }
     function getClassBadge(cls) {
       const c = String(cls || '').replace(/^Class\s+/i, '');
       if (c === 'I') return '<span class="badge badge-red">Class I</span>';
-      if (c === 'II') return '<span class="badge badge-yellow">Class II</span>';
-      if (c === 'III') return '<span class="badge badge-gray">Class III</span>';
+      if (c === 'II') return '<span class="badge badge-orange">Class II</span>';
+      if (c === 'III') return '<span class="badge badge-yellow">Class III</span>';
       return `<span class="badge badge-gray">${esc(cls || 'N/A')}</span>`;
     }
     function recallSearchUrl(recallNumber, productDesc) {
@@ -563,7 +599,7 @@
     }
     function tableHead(cols) {
       return '<div class="table-wrap"><table class="result-table"><tr>' +
-        cols.map(c => `<th>${c}</th>`).join('') + '</tr>';
+        cols.map(c => `<th>${c}<span class="sort-ind"> ⇅</span></th>`).join('') + '</tr>';
     }
     function rowCommon(r, highlightTerm) {
       return recallCell(r) +
@@ -572,11 +608,289 @@
              clipCell(r.product_description, highlightTerm) +
              clipCell(r.reason_for_recall, null);
     }
+
+    // ══════════ Export suite (CSV / Excel / BibTeX / JSON) ══════════
+    // Holds the latest normalized result rows per module, keyed by module.
+    const lastData = { check: null, firm: null, recent: null, reference: null };
+    const ANALYSIS_LABEL = {
+      check: 'Drug recall search',
+      firm: 'Firm recall history',
+      recent: 'Recent recalls',
+      reference: 'Recall lookup'
+    };
+
+    // Normalize an openFDA enforcement record into export-ready columns.
+    function mapRecall(r) {
+      r = r || {};
+      return {
+        'Recall number': r.recall_number || '',
+        'Product': r.product_description || '',
+        'Firm': r.recalling_firm || '',
+        'Classification': r.classification || '',
+        'Reason': r.reason_for_recall || '',
+        'Status': r.status || '',
+        'Initiation date': isoDate(r.recall_initiation_date),
+        'Report date': isoDate(r.report_date),
+        'Distribution': r.distribution_pattern || '',
+        'Country': r.country || '',
+        'Quantity': r.product_quantity || ''
+      };
+    }
+
+    // ── Shared helper: pulls the row array out of whatever the module stored ──
+    function rowsFromLastData(key) {
+      const d = lastData[key];
+      if (!d) return null;
+      if (Array.isArray(d)) return d;
+      if (typeof d === 'object') {
+        for (const k of Object.keys(d)) { if (Array.isArray(d[k])) return d[k]; }
+      }
+      return null;
+    }
+
+    // ── CSV (RFC4180). Excel-safe: BOM + CRLF + explicit separator hint. ──
+    function toCSV(rows) {
+      const cols = [];
+      rows.forEach(r => Object.keys(r || {}).forEach(k => { if (!cols.includes(k)) cols.push(k); }));
+      const cell = v => {
+        // Booleans must be exported as text, otherwise Excel localises them
+        // (Hungarian Excel shows IGAZ / HAMIS instead of TRUE / FALSE).
+        if (v === null || v === undefined || v === false) return "";
+        if (v === true) return "Yes";
+        let s = (typeof v === "object") ? JSON.stringify(v) : String(v);
+        if (/[",\r\n]/.test(s)) s = '"' + s.replace(/"/g, '""') + '"';
+        return s;
+      };
+      // "sep=," tells Excel the delimiter regardless of the user's locale.
+      const lines = ["sep=,", cols.map(cell).join(",")];
+      rows.forEach(r => lines.push(cols.map(c => cell(r ? r[c] : "")).join(",")));
+      return "﻿" + lines.join("\r\n");
+    }
+
+    function downloadCSV(key, filename) {
+      if (!lastData[key]) { alert("Run a search first."); return; }
+      const rows = rowsFromLastData(key);
+      if (!rows || !rows.length) { alert("CSV export is not available for this result — use JSON."); return; }
+      triggerDownload(new Blob([toCSV(rows)], { type: "text/csv;charset=utf-8" }), filename);
+    }
+
+    // ── XLSX: centered numbers, left-aligned long text, styled header ──
+    function downloadXLSX(key, filename) {
+      if (!lastData[key]) { alert("Run a search first."); return; }
+      const rows = rowsFromLastData(key);
+      if (!rows || !rows.length) { alert("Excel export is not available for this result — use JSON."); return; }
+      const cols = [];
+      rows.forEach(r => Object.keys(r || {}).forEach(k => { if (!cols.includes(k)) cols.push(k); }));
+      const aoa = [cols].concat(rows.map(r => cols.map(c => {
+        const v = r ? r[c] : "";
+        if (v === null || v === undefined || v === false) return "";
+        if (v === true) return "Yes";
+        return (typeof v === "object") ? JSON.stringify(v) : v;
+      })));
+      const ws = XLSX.utils.aoa_to_sheet(aoa);
+
+      // Measure each column: long free text goes left and wide, short values centre.
+      const colInfo = cols.map(c => {
+        let max = String(c).length, sum = 0, cnt = 0;
+        rows.forEach(r => { const v = r ? r[c] : ""; const L = String(v == null ? "" : v).length; if (L > max) max = L; sum += L; cnt++; });
+        const avg = cnt ? sum / cnt : 0;
+        const isLong = (max > 22) || (avg > 18);
+        return { wch: Math.min(Math.max(max + 2, 9), isLong ? 90 : 24), left: isLong };
+      });
+
+      const range = XLSX.utils.decode_range(ws["!ref"]);
+      const centerH = { vertical: "center", horizontal: "center", wrapText: false };
+      for (let R = range.s.r; R <= range.e.r; R++) {
+        for (let C = range.s.c; C <= range.e.c; C++) {
+          const addr = XLSX.utils.encode_cell({ r: R, c: C });
+          if (!ws[addr]) continue;
+          if (R === 0) {
+            ws[addr].s = { font: { bold: true, color: { rgb: "FFFFFF" } }, alignment: centerH,
+              fill: { fgColor: { rgb: "4472C4" } },
+              border: { bottom: { style: "thin", color: { rgb: "999999" } } } };
+          } else {
+            ws[addr].s = { alignment: { vertical: "center",
+              horizontal: (colInfo[C] && colInfo[C].left) ? "left" : "center", wrapText: false } };
+          }
+        }
+      }
+      // Classification is the key signal of this app — colour-code it in the sheet
+      // exactly like the on-screen badges (Class I red, II orange, III yellow).
+      const clsC = cols.indexOf("Classification");
+      if (clsC >= 0) {
+        const CLS_FILL = {
+          "I": { fg: "C00000", font: "FFFFFF" },
+          "II": { fg: "ED7D31", font: "FFFFFF" },
+          "III": { fg: "FFD966", font: "000000" }
+        };
+        for (let R = 1; R <= range.e.r; R++) {
+          const addr = XLSX.utils.encode_cell({ r: R, c: clsC });
+          if (!ws[addr]) continue;
+          const m = String(ws[addr].v || "").match(/\b(III|II|I)\b/);
+          const f = m && CLS_FILL[m[1]];
+          if (f) ws[addr].s = { alignment: centerH, font: { bold: true, color: { rgb: f.font } }, fill: { fgColor: { rgb: f.fg } } };
+        }
+      }
+      ws["!cols"] = colInfo.map(ci => ({ wch: ci.wch }));
+      ws["!freeze"] = { xSplit: 0, ySplit: 1 };
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Recallis");
+      XLSX.writeFile(wb, filename);
+    }
+
+    // ── BibTeX: recalls are agency notices, not articles → @misc keyed by recall number ──
+    function bibEsc(v) { return String(v == null ? "" : v).replace(/[{}\\]/g, "").trim(); }
+    function bibShort(v, n) {
+      const s = String(v == null ? "" : v).trim();
+      return s.length > n ? s.slice(0, n - 3).trimEnd() + "..." : s;
+    }
+
+    function toBibTeX(rows) {
+      const out = [];
+      rows.forEach((r, i) => {
+        const num = String(r["Recall number"] || "").trim();
+        const key = num ? num.replace(/[^A-Za-z0-9\-]/g, "") : "recall_" + (i + 1);
+        const year = (String(r["Report date"] || r["Initiation date"] || "").match(/^(\d{4})/) || [])[1] || new Date().getFullYear();
+        const firm = bibEsc(r["Firm"] || "Unknown firm");
+        const product = bibEsc(bibShort(r["Product"], 120)) || "Drug product";
+        const reason = bibEsc(bibShort(r["Reason"], 160));
+        const cls = bibEsc(r["Classification"] || "");
+        const lines = ["@misc{" + key + ","];
+        lines.push("  title        = {Recall: " + product + "},");
+        lines.push("  author       = {{" + firm + "}},");
+        lines.push("  howpublished = {FDA Enforcement Report, recall number " + (num || "N/A") + "},");
+        lines.push("  year         = {" + year + "},");
+        if (num) lines.push('  url          = {https://api.fda.gov/drug/enforcement.json?search=recall_number:"' + num + '"},');
+        lines.push("  note         = {" + (cls ? cls + " — " : "") + (reason || "Exported from Recallis; data via openFDA") + "}");
+        lines.push("}");
+        out.push(lines.join("\n"));
+      });
+      return out.join("\n\n") + "\n";
+    }
+
+    // Fallback dataset-style citation when the stored rows carry no recall numbers.
+    function analysisBibTeX(key, rows) {
+      const label = ANALYSIS_LABEL[key] || "Recall analysis";
+      const y = new Date().getFullYear();
+      return "@misc{recallis_" + key + "_" + y + ",\n" +
+        "  title  = {" + bibEsc(label) + "},\n" +
+        "  author = {{Recallis}},\n" +
+        "  year   = {" + y + "},\n" +
+        "  howpublished = {Recallis drug recall search},\n" +
+        "  note   = {Analysis of " + (rows ? rows.length : 0) + " FDA enforcement records; data via openFDA},\n" +
+        "  url    = {" + window.location.origin + "/}\n" +
+        "}\n";
+    }
+
+    function downloadBibTeX(key, filename) {
+      if (!lastData[key]) { alert("Run a search first."); return; }
+      const rows = rowsFromLastData(key) || [];
+      const withNum = rows.filter(r => r && r["Recall number"]);
+      const text = withNum.length ? toBibTeX(withNum) : analysisBibTeX(key, rows);
+      triggerDownload(new Blob([text], { type: "application/x-bibtex;charset=utf-8" }), filename);
+    }
+
+    // ── JSON + shared download trigger ──
+    function downloadJSON(key, filename) {
+      const d = lastData[key];
+      if (!d) { alert("Run a search first."); return; }
+      triggerDownload(new Blob([JSON.stringify(d, null, 2)], { type: "application/json" }), filename);
+    }
+
+    function triggerDownload(blob, filename) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = filename;
+      document.body.appendChild(a); a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    // ── Result header: count + quick filter + Class I toggle + download buttons ──
+    function metaRow(text, key, filename, opts) {
+      opts = opts || {};
+      const csvName = String(filename).replace(/\.json$/i, ".csv");
+      const xlsxName = String(filename).replace(/\.json$/i, ".xlsx");
+      const bibName = String(filename).replace(/\.json$/i, ".bib");
+      const filterCtl = opts.noFilter ? "" :
+        '<input class="qfilter" type="text" placeholder="🔍 Filter results…">' +
+        '<button class="qclass" title="Show Class I (most serious) recalls only">Class I</button>';
+      return '<div class="meta-row"><span class="meta">' + text + '<span class="qcount"></span></span>' +
+        '<span class="dl-group">' + filterCtl +
+        '<button class="dl" title="BibTeX citations (@misc, keyed by recall number)" onclick="downloadBibTeX(\'' + key + '\',\'' + bibName + '\')">⬇ BibTeX</button>' +
+        '<button class="dl" onclick="downloadXLSX(\'' + key + '\',\'' + xlsxName + '\')">⬇ Excel</button>' +
+        '<button class="dl" onclick="downloadCSV(\'' + key + '\',\'' + csvName + '\')">⬇ CSV</button>' +
+        '<button class="dl" onclick="downloadJSON(\'' + key + '\',\'' + filename + '\')">⬇ JSON</button>' +
+        '</span></div>';
+    }
+
+    // ══════════ Quick filter + sortable columns ══════════
+    function resultBox(el) {
+      return el.closest('#checkResult, #firmResult, #recentResult, #referenceResult');
+    }
+
+    function applyTableFilter(box) {
+      if (!box) return;
+      const table = box.querySelector('.result-table');
+      if (!table) return;
+      const input = box.querySelector('.qfilter');
+      const toggle = box.querySelector('.qclass');
+      const q = (input ? input.value : '').trim().toLowerCase();
+      const onlyClassI = !!(toggle && toggle.classList.contains('on'));
+      const rows = Array.prototype.slice.call(table.rows, 1);
+      let shown = 0;
+      rows.forEach(tr => {
+        const okText = !q || tr.textContent.toLowerCase().includes(q);
+        const okClass = !onlyClassI || !!tr.querySelector('.badge-red');
+        const ok = okText && okClass;
+        tr.style.display = ok ? '' : 'none';
+        if (ok) shown++;
+      });
+      const count = box.querySelector('.qcount');
+      if (count) count.textContent = ' · ' + shown + ' / ' + rows.length + ' rows';
+    }
+
+    function sortTable(th) {
+      const table = th.closest('table');
+      const idx = th.cellIndex;
+      const dir = th.dataset.dir === 'asc' ? 'desc' : 'asc';
+      table.querySelectorAll('th').forEach(h => {
+        h.dataset.dir = '';
+        const s = h.querySelector('.sort-ind'); if (s) s.textContent = ' ⇅';
+      });
+      th.dataset.dir = dir;
+      const ind = th.querySelector('.sort-ind'); if (ind) ind.textContent = dir === 'asc' ? ' ↑' : ' ↓';
+      const rows = Array.prototype.slice.call(table.rows, 1);
+      const val = tr => { const td = tr.cells[idx]; return td ? td.textContent.trim() : ''; };
+      const isNum = s => s !== '' && /^-?[\d,]+(\.\d+)?$/.test(s);
+      const numeric = rows.some(r => isNum(val(r))) &&
+        rows.every(r => { const v = val(r); return v === '' || v === 'N/A' || isNum(v); });
+      rows.sort((a, b) => {
+        const A = val(a), B = val(b);
+        let c;
+        if (numeric) c = (parseFloat(A.replace(/,/g, '')) || 0) - (parseFloat(B.replace(/,/g, '')) || 0);
+        else c = A.localeCompare(B, undefined, { sensitivity: 'base' });
+        return dir === 'asc' ? c : -c;
+      });
+      rows.forEach(r => r.parentNode.appendChild(r));
+    }
+
+    // Single delegated pair of listeners covers every result table in every modal.
+    document.addEventListener('input', (e) => {
+      if (e.target.classList && e.target.classList.contains('qfilter')) applyTableFilter(resultBox(e.target));
+    });
+    document.addEventListener('click', (e) => {
+      const th = e.target.closest && e.target.closest('.result-table th');
+      if (th) { sortTable(th); return; }
+      const toggle = e.target.closest && e.target.closest('.qclass');
+      if (toggle) { toggle.classList.toggle('on'); applyTableFilter(resultBox(toggle)); }
+    });
     async function submitCheck() {
       const drug = document.getElementById('checkDrug').value.trim();
       const cls = document.getElementById('checkClass').value;
       const resultDiv = document.getElementById('checkResult');
       if (!drug) { resultDiv.innerHTML = '<div class="error-box">Please enter a drug name.</div>'; return; }
+      lastData.check = null;
       resultDiv.innerHTML = '<div class="spinner"></div>';
       try {
         const res = await fetch('/api/check', {
@@ -590,13 +904,15 @@
           resultDiv.innerHTML = '<div class="empty-state">✅ No active recalls found for this drug. That\'s good news!</div>';
           return;
         }
+        lastData.check = data.results.map(mapRecall);
         widen('checkContent');
-        let html = tableHead(['Recall #', 'Date', 'Class', 'Product', 'Reason']);
-        data.results.slice(0, 10).forEach((r) => {
+        let html = metaRow(data.results.length + ' recalls', 'check', 'recallis-recalls.json');
+        html += tableHead(['Recall #', 'Date', 'Class', 'Product', 'Reason']);
+        data.results.forEach((r) => {
           html += '<tr>' + rowCommon(r, drug) + '</tr>';
         });
         html += '</table></div>';
-        html += '<p style="font-size:0.75rem;color:#909090;margin-top:8px;">💡 Click a recall number to open full details in a new tab. Hover over Product/Reason for full text.</p>';
+        html += '<p style="font-size:0.75rem;color:#909090;margin-top:8px;">💡 Click a recall number for full details · click a column header to sort · hover over Product/Reason for full text.</p>';
         resultDiv.innerHTML = html;
       } catch (err) {
         resultDiv.innerHTML = `<div class="error-box">Error: ${esc(err.message)}</div>`;
@@ -607,6 +923,7 @@
       const limit = parseInt(document.getElementById('firmLimit').value);
       const resultDiv = document.getElementById('firmResult');
       if (!firm) { resultDiv.innerHTML = '<div class="error-box">Please enter a firm name.</div>'; return; }
+      lastData.firm = null;
       resultDiv.innerHTML = '<div class="spinner"></div>';
       try {
         const res = await fetch('/api/firm', {
@@ -620,13 +937,15 @@
           resultDiv.innerHTML = '<div class="empty-state">✅ No recalls found for this firm.</div>';
           return;
         }
+        lastData.firm = data.results.map(mapRecall);
         widen('firmContent');
-        let html = tableHead(['Recall #', 'Date', 'Class', 'Product', 'Reason']);
+        let html = metaRow(data.results.length + ' recalls', 'firm', 'recallis-firm-recalls.json');
+        html += tableHead(['Recall #', 'Date', 'Class', 'Product', 'Reason']);
         data.results.forEach((r) => {
           html += '<tr>' + rowCommon(r, null) + '</tr>';
         });
         html += '</table></div>';
-        html += '<p style="font-size:0.75rem;color:#909090;margin-top:8px;">💡 Click a recall number to open full details in a new tab. Hover over Product/Reason for full text.</p>';
+        html += '<p style="font-size:0.75rem;color:#909090;margin-top:8px;">💡 Click a recall number for full details · click a column header to sort · hover over Product/Reason for full text.</p>';
         resultDiv.innerHTML = html;
       } catch (err) {
         resultDiv.innerHTML = `<div class="error-box">Error: ${esc(err.message)}</div>`;
@@ -636,6 +955,7 @@
       const days = parseInt(document.getElementById('recentDays').value);
       const limit = parseInt(document.getElementById('recentLimit').value);
       const resultDiv = document.getElementById('recentResult');
+      lastData.recent = null;
       resultDiv.innerHTML = '<div class="spinner"></div>';
       try {
         const res = await fetch('/api/recent', {
@@ -649,13 +969,15 @@
           resultDiv.innerHTML = '<div class="empty-state">✅ No recalls in this period.</div>';
           return;
         }
+        lastData.recent = data.results.map(mapRecall);
         widen('recentContent');
-        let html = tableHead(['Recall #', 'Date', 'Class', 'Product', 'Reason']);
+        let html = metaRow(data.results.length + ' recalls', 'recent', 'recallis-recent-recalls.json');
+        html += tableHead(['Recall #', 'Date', 'Class', 'Product', 'Reason']);
         data.results.forEach((r) => {
           html += '<tr>' + rowCommon(r, null) + '</tr>';
         });
         html += '</table></div>';
-        html += '<p style="font-size:0.75rem;color:#909090;margin-top:8px;">💡 Click a recall number to open full details in a new tab. Hover over Product/Reason for full text.</p>';
+        html += '<p style="font-size:0.75rem;color:#909090;margin-top:8px;">💡 Click a recall number for full details · click a column header to sort · hover over Product/Reason for full text.</p>';
         resultDiv.innerHTML = html;
       } catch (err) {
         resultDiv.innerHTML = `<div class="error-box">Error: ${esc(err.message)}</div>`;
@@ -665,6 +987,7 @@
       const recallNumber = document.getElementById('recallNumber').value.trim().toUpperCase();
       const resultDiv = document.getElementById('referenceResult');
       if (!recallNumber) { resultDiv.innerHTML = '<div class="error-box">Please enter a recall number.</div>'; return; }
+      lastData.reference = null;
       resultDiv.innerHTML = '<div class="spinner"></div>';
       try {
         const res = await fetch('/api/reference', {
@@ -679,11 +1002,13 @@
           resultDiv.innerHTML = '<div class="error-box">No recall found for that number.</div>';
           return;
         }
+        lastData.reference = [mapRecall(rec)];
         let lots = '';
         if (rec.code_info) {
           lots = `<p><strong>Lots / Expiry:</strong> ${esc(rec.code_info)}</p>`;
         }
-        let html = '<div style="background: rgba(255,255,255,0.05); padding: 14px; border-radius: 8px; margin-top: 16px; font-size: 0.9rem; line-height: 1.8;">';
+        let html = metaRow('Recall ' + esc(rec.recall_number), 'reference', 'recallis-recall.json', { noFilter: true });
+        html += '<div style="background: rgba(255,255,255,0.05); padding: 14px; border-radius: 8px; margin-top: 16px; font-size: 0.9rem; line-height: 1.8;">';
         html += `<p><strong>Recall #:</strong> <code>${esc(rec.recall_number || 'N/A')}</code></p>`;
         html += `<p><strong>Classification:</strong> ${getClassBadge(rec.classification)}</p>`;
         html += `<p><strong>Status:</strong> ${esc(rec.status || 'N/A')}</p>`;

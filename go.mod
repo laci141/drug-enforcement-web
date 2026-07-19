@@ -1,2 +1,2 @@
-module drug-enforcement-web
+module pubvera-recallis
 go 1.26

@@ -30,7 +30,7 @@ func main() {
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 
-	log.Printf("drug-enforcement-web listening on 0.0.0.0:%s (CLI=%s)", port, cliBinary())
+	log.Printf("recallis listening on 0.0.0.0:%s (CLI=%s)", port, cliBinary())
 	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Fatal(err)
 	}
