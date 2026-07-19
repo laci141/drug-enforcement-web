@@ -648,8 +648,74 @@
       return null;
     }
 
+    // Query text per module, captured at search time so exports can cite it.
+    const lastQuery = { check: '', firm: '', recent: '', reference: '' };
+
+    // Live view registry: every module that filters or sorts its table registers a
+    // getter returning the rows exactly as the user currently sees them, plus the
+    // filters that produced them. Without this the exports silently ignore the
+    // on-screen filters and hand back the full result set.
+    const viewProviders = {};
+
+    function registerView(key, fn) { viewProviders[key] = fn; }
+
+    function exportRows(key) {
+      const p = viewProviders[key];
+      if (typeof p === "function") {
+        const v = p() || {};
+        return { rows: Array.isArray(v.rows) ? v.rows : [], scope: (v.filters || []).join(" · ") };
+      }
+      return { rows: rowsFromLastData(key) || [], scope: "" };   // fallback: unfiltered module
+    }
+
+    // Filtering is DOM-based (applyTableFilter toggles tr.style.display), so the
+    // single source of truth for "what the user sees" is the rendered table: rows
+    // carry data-idx back into lastData, and DOM order carries the current sort.
+    function domView(key) {
+      const all = rowsFromLastData(key) || [];
+      const box = document.getElementById(key + 'Result');
+      const table = box && box.querySelector('.result-table');
+      if (!table) return { rows: all, filters: [] };
+      const filters = [];
+      const input = box.querySelector('.qfilter');
+      if (input && input.value.trim()) filters.push('filter: "' + input.value.trim() + '"');
+      const toggle = box.querySelector('.qclass');
+      if (toggle && toggle.classList.contains('on')) filters.push('Class I only');
+      const th = table.querySelector('th[data-dir="asc"], th[data-dir="desc"]');
+      if (th) filters.push('sorted by ' + th.textContent.replace(/[⇅↑↓]/g, '').trim() + ' ' + th.dataset.dir);
+      const rows = [];
+      Array.prototype.slice.call(table.rows, 1).forEach(tr => {
+        if (tr.style.display === 'none') return;
+        const i = parseInt(tr.dataset.idx, 10);
+        if (!isNaN(i) && all[i]) rows.push(all[i]);
+      });
+      return { rows: rows, filters: filters };
+    }
+
+    registerView('check', () => domView('check'));
+    registerView('firm', () => domView('firm'));
+    registerView('recent', () => domView('recent'));
+    // 'reference' is a single-record detail view with no filters → registry fallback.
+
+    // Provenance line embedded in every exported file.
+    function exportHeader(key, rows) {
+      const total = (rowsFromLastData(key) || []).length;
+      const shown = rows ? rows.length : 0;
+      const parts = ["Recallis export"];
+      if (ANALYSIS_LABEL[key]) parts.push(ANALYSIS_LABEL[key]);
+      if (lastQuery[key]) parts.push('query: "' + lastQuery[key] + '"');
+      parts.push(total && total !== shown ? ("showing " + shown + " of " + total + " rows") : (shown + " rows"));
+      const sc = exportRows(key).scope;
+      if (sc) parts.push(sc);
+      parts.push("source: openFDA drug enforcement API");
+      parts.push(new Date().toISOString().slice(0, 10));
+      return parts.join(" · ");
+    }
+
+    const EMPTY_EXPORT_MSG = "Run an analysis first — or clear the filters, nothing is visible.";
+
     // ── CSV (RFC4180). Excel-safe: BOM + CRLF + explicit separator hint. ──
-    function toCSV(rows) {
+    function toCSV(rows, header) {
       const cols = [];
       rows.forEach(r => Object.keys(r || {}).forEach(k => { if (!cols.includes(k)) cols.push(k); }));
       const cell = v => {
@@ -662,26 +728,30 @@
         return s;
       };
       // "sep=," tells Excel the delimiter regardless of the user's locale.
-      const lines = ["sep=,", cols.map(cell).join(",")];
+      const lines = ["sep=,"];
+      if (header) lines.push(cell(header));
+      lines.push(cols.map(cell).join(","));
       rows.forEach(r => lines.push(cols.map(c => cell(r ? r[c] : "")).join(",")));
       return "﻿" + lines.join("\r\n");
     }
 
     function downloadCSV(key, filename) {
       if (!lastData[key]) { alert("Run a search first."); return; }
-      const rows = rowsFromLastData(key);
-      if (!rows || !rows.length) { alert("CSV export is not available for this result — use JSON."); return; }
-      triggerDownload(new Blob([toCSV(rows)], { type: "text/csv;charset=utf-8" }), filename);
+      const ex = exportRows(key);
+      if (!ex.rows.length) { alert(EMPTY_EXPORT_MSG); return; }
+      triggerDownload(new Blob([toCSV(ex.rows, exportHeader(key, ex.rows))], { type: "text/csv;charset=utf-8" }), filename);
     }
 
     // ── XLSX: centered numbers, left-aligned long text, styled header ──
     function downloadXLSX(key, filename) {
       if (!lastData[key]) { alert("Run a search first."); return; }
-      const rows = rowsFromLastData(key);
-      if (!rows || !rows.length) { alert("Excel export is not available for this result — use JSON."); return; }
+      const ex = exportRows(key);
+      const rows = ex.rows;
+      if (!rows.length) { alert(EMPTY_EXPORT_MSG); return; }
       const cols = [];
       rows.forEach(r => Object.keys(r || {}).forEach(k => { if (!cols.includes(k)) cols.push(k); }));
-      const aoa = [cols].concat(rows.map(r => cols.map(c => {
+      // Row 0: provenance title (merged, grey italic) · row 1: column header · data from row 2.
+      const aoa = [[exportHeader(key, rows)], cols].concat(rows.map(r => cols.map(c => {
         const v = r ? r[c] : "";
         if (v === null || v === undefined || v === false) return "";
         if (v === true) return "Yes";
@@ -705,6 +775,9 @@
           const addr = XLSX.utils.encode_cell({ r: R, c: C });
           if (!ws[addr]) continue;
           if (R === 0) {
+            ws[addr].s = { font: { italic: true, color: { rgb: "808080" } },
+              alignment: { vertical: "center", horizontal: "left", wrapText: false } };
+          } else if (R === 1) {
             ws[addr].s = { font: { bold: true, color: { rgb: "FFFFFF" } }, alignment: centerH,
               fill: { fgColor: { rgb: "4472C4" } },
               border: { bottom: { style: "thin", color: { rgb: "999999" } } } };
@@ -723,7 +796,7 @@
           "II": { fg: "ED7D31", font: "FFFFFF" },
           "III": { fg: "FFD966", font: "000000" }
         };
-        for (let R = 1; R <= range.e.r; R++) {
+        for (let R = 2; R <= range.e.r; R++) {
           const addr = XLSX.utils.encode_cell({ r: R, c: clsC });
           if (!ws[addr]) continue;
           const m = String(ws[addr].v || "").match(/\b(III|II|I)\b/);
@@ -732,7 +805,8 @@
         }
       }
       ws["!cols"] = colInfo.map(ci => ({ wch: ci.wch }));
-      ws["!freeze"] = { xSplit: 0, ySplit: 1 };
+      ws["!merges"] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: cols.length - 1 } }];
+      ws["!freeze"] = { xSplit: 0, ySplit: 2 };
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Recallis");
       XLSX.writeFile(wb, filename);
@@ -784,17 +858,33 @@
 
     function downloadBibTeX(key, filename) {
       if (!lastData[key]) { alert("Run a search first."); return; }
-      const rows = rowsFromLastData(key) || [];
-      const withNum = rows.filter(r => r && r["Recall number"]);
-      const text = withNum.length ? toBibTeX(withNum) : analysisBibTeX(key, rows);
+      const ex = exportRows(key);
+      if (!ex.rows.length) { alert(EMPTY_EXPORT_MSG); return; }
+      const withNum = ex.rows.filter(r => r && r["Recall number"]);
+      const body = withNum.length ? toBibTeX(withNum) : analysisBibTeX(key, ex.rows);
+      const text = "% " + exportHeader(key, ex.rows) + "\n\n" + body;
       triggerDownload(new Blob([text], { type: "application/x-bibtex;charset=utf-8" }), filename);
     }
 
     // ── JSON + shared download trigger ──
     function downloadJSON(key, filename) {
-      const d = lastData[key];
-      if (!d) { alert("Run a search first."); return; }
-      triggerDownload(new Blob([JSON.stringify(d, null, 2)], { type: "application/json" }), filename);
+      if (!lastData[key]) { alert("Run a search first."); return; }
+      const ex = exportRows(key);
+      if (!ex.rows.length) { alert(EMPTY_EXPORT_MSG); return; }
+      const payload = {
+        export: {
+          app: "Recallis",
+          analysis: ANALYSIS_LABEL[key] || "",
+          query: lastQuery[key] || "",
+          filters: ex.scope,
+          rows_exported: ex.rows.length,
+          rows_total: (rowsFromLastData(key) || []).length,
+          source: "openFDA drug enforcement API",
+          exported_at: new Date().toISOString()
+        },
+        rows: ex.rows
+      };
+      triggerDownload(new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" }), filename);
     }
 
     function triggerDownload(blob, filename) {
@@ -905,15 +995,17 @@
           return;
         }
         lastData.check = data.results.map(mapRecall);
+        lastQuery.check = drug + (cls ? ' (Class ' + cls + ')' : '');
         widen('checkContent');
         let html = metaRow(data.results.length + ' recalls', 'check', 'recallis-recalls.json');
         html += tableHead(['Recall #', 'Date', 'Class', 'Product', 'Reason']);
-        data.results.forEach((r) => {
-          html += '<tr>' + rowCommon(r, drug) + '</tr>';
+        data.results.forEach((r, i) => {
+          html += '<tr data-idx="' + i + '">' + rowCommon(r, drug) + '</tr>';
         });
         html += '</table></div>';
         html += '<p style="font-size:0.75rem;color:#909090;margin-top:8px;">💡 Click a recall number for full details · click a column header to sort · hover over Product/Reason for full text.</p>';
         resultDiv.innerHTML = html;
+        applyTableFilter(resultDiv);
       } catch (err) {
         resultDiv.innerHTML = `<div class="error-box">Error: ${esc(err.message)}</div>`;
       }
@@ -938,15 +1030,17 @@
           return;
         }
         lastData.firm = data.results.map(mapRecall);
+        lastQuery.firm = firm;
         widen('firmContent');
         let html = metaRow(data.results.length + ' recalls', 'firm', 'recallis-firm-recalls.json');
         html += tableHead(['Recall #', 'Date', 'Class', 'Product', 'Reason']);
-        data.results.forEach((r) => {
-          html += '<tr>' + rowCommon(r, null) + '</tr>';
+        data.results.forEach((r, i) => {
+          html += '<tr data-idx="' + i + '">' + rowCommon(r, null) + '</tr>';
         });
         html += '</table></div>';
         html += '<p style="font-size:0.75rem;color:#909090;margin-top:8px;">💡 Click a recall number for full details · click a column header to sort · hover over Product/Reason for full text.</p>';
         resultDiv.innerHTML = html;
+        applyTableFilter(resultDiv);
       } catch (err) {
         resultDiv.innerHTML = `<div class="error-box">Error: ${esc(err.message)}</div>`;
       }
@@ -970,15 +1064,17 @@
           return;
         }
         lastData.recent = data.results.map(mapRecall);
+        lastQuery.recent = 'last ' + days + ' days';
         widen('recentContent');
         let html = metaRow(data.results.length + ' recalls', 'recent', 'recallis-recent-recalls.json');
         html += tableHead(['Recall #', 'Date', 'Class', 'Product', 'Reason']);
-        data.results.forEach((r) => {
-          html += '<tr>' + rowCommon(r, null) + '</tr>';
+        data.results.forEach((r, i) => {
+          html += '<tr data-idx="' + i + '">' + rowCommon(r, null) + '</tr>';
         });
         html += '</table></div>';
         html += '<p style="font-size:0.75rem;color:#909090;margin-top:8px;">💡 Click a recall number for full details · click a column header to sort · hover over Product/Reason for full text.</p>';
         resultDiv.innerHTML = html;
+        applyTableFilter(resultDiv);
       } catch (err) {
         resultDiv.innerHTML = `<div class="error-box">Error: ${esc(err.message)}</div>`;
       }
@@ -1003,6 +1099,7 @@
           return;
         }
         lastData.reference = [mapRecall(rec)];
+        lastQuery.reference = recallNumber;
         let lots = '';
         if (rec.code_info) {
           lots = `<p><strong>Lots / Expiry:</strong> ${esc(rec.code_info)}</p>`;
